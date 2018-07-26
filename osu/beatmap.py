@@ -171,7 +171,7 @@ class BeatmapSet:
         
         return bm
     
-    def audio(self, samplerate=48000, interval=0.01):
+    def audio(self, samplerate=48000, interval=0.01, channels=2):
         if self.__audio is not None:
             return self.__audio
         
@@ -197,6 +197,11 @@ class BeatmapSet:
         if f.samplerate != samplerate:
             audio_samples = resampy.resample(audio_samples, f.samplerate, samplerate, axis=1)
         
+        if f.channels < channels:
+            audio_samples = np.repeat(2, axis=0)
+        elif f.channels > channels:
+            channels = f.channels
+        
         # normalize samples
         normalized_samples = audio_samples / float(1 << 15)
         
@@ -212,5 +217,5 @@ class BeatmapSet:
         interval_powers = np.abs(np.fft.fft(interval_frames))
         
         full_duration = audio_samples.shape[1] / f.samplerate
-        self.__audio = Audio(f.channels, samplerate, full_duration, np.transpose(interval_powers, (1, 0, 2)))
+        self.__audio = Audio(channels, samplerate, full_duration, np.transpose(interval_powers, (1, 0, 2)))
         return self.__audio
