@@ -1,18 +1,17 @@
 import os
 
-import h5py
-import numpy
+import mxnet
 
 from osu.api import OsuAPIClient
 
 client = OsuAPIClient("ssttevee", "37mem!9$FOO*0j25Wt9r@nn$")
 
-data_path = "h5data"
+data_path = "data"
 if not os.path.exists(data_path):
     os.makedirs(data_path)
 
 for beatmap_result in client.search(limit=1000):
-    output_path = os.path.join(data_path, "%d.h5" % beatmap_result["id"])
+    output_path = os.path.join(data_path, "%d.ndarray" % beatmap_result["id"])
     if os.path.exists(output_path):
         continue
     
@@ -29,11 +28,13 @@ for beatmap_result in client.search(limit=1000):
         print(beatmap_result["id"], "failed to prepare data:", str(e))
         continue
     
+    if a.channels != 2:
+        print(beatmap_result["id"], "skipping... unexpected number of channels:", a.channels)
+        continue
+    
     print(beatmap_result["id"], a.data.shape, timing_data.shape)
     
-    with h5py.File(output_path) as f:
-        f.create_dataset("Audio", data=a.data)
-        f.create_dataset("Timing", data=timing_data)
-    
-    # a.data.tofile(os.path.join(path, "audio.dat"))
-    # timing_data.tofile(os.path.join(path, "timing.dat"))
+    mxnet.nd.save(output_path, {
+        "Audio": mxnet.nd.array(a.data),
+        "Timing": mxnet.nd.array(timing_data),
+    })
